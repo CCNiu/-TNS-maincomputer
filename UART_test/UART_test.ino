@@ -35,15 +35,22 @@
 //   }
 // }
 #include <HardwareSerial.h>
-
-
+String receivedData = "";
 void setup() {
-  Serial2.begin(9600); // 設定波特率
-  Serial.begin(9600); // 用於調試
+  Serial2.begin(115200,SERIAL_8N1); // 設定波特率
+  Serial.begin(115200); // 用於調試
 }
 
 void loop() {
-  Serial2.println("Hello from Arduino Giga!"); // 發送數據
-  Serial.println("Hello from Arduino Giga!"); // 發送數據
-  delay(1000);
+  // Serial2.println("Hello from Arduino Giga!"); // 發送數據
+  // Serial.println("Hello from Arduino Giga!"); // 發送數據
+  delay(10);
+  if (Serial2.available()) {
+    // 讀取數據，直到換行符結束
+    receivedData = Serial2.readStringUntil('\n');
+    // Serial.println("2");
+    // 顯示接收到的數據
+    Serial.print("Received: ");
+    Serial.println(receivedData);
+  }
 }
