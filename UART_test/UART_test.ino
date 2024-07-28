@@ -42,9 +42,10 @@ void setup() {
 }
 
 void loop() {
-  // Serial2.println("Hello from Arduino Giga!"); // 發送數據
-  // Serial.println("Hello from Arduino Giga!"); // 發送數據
-  delay(10);
+
+  // Serial2.write("S00"); // 發送數據
+  // Serial.println("S00"); // 發送數據
+  
   if (Serial2.available()) {
     // 讀取數據，直到換行符結束
     receivedData = Serial2.readStringUntil('\n');
@@ -52,5 +53,12 @@ void loop() {
     // 顯示接收到的數據
     Serial.print("Received: ");
     Serial.println(receivedData);
+  }
+  delay(1000);
+  if (Serial.available()) {
+    // 讀取數據，直到換行符結束
+    String dataToSend = Serial.readStringUntil('\n');
+    Serial2.print(dataToSend);
+    Serial.print(dataToSend);
   }
 }
