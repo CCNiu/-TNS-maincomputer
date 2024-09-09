@@ -27,6 +27,6 @@ void loop() {
     // size_t temp = Serial2.print(dataToSend);
     Serial.println(dataToSend);
     // Serial.println(temp);
-    Serial.println(dataToSend.length());
+    //Serial.println(dataToSend.length());
   }
 }
