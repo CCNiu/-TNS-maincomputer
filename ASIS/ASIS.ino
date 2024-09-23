@@ -49,10 +49,6 @@ void setup() {
   pinMode(PA_15, OUTPUT);
   digitalWrite(PA_15, HIGH);
 
-void loop() {
-  // put your main code here, to run repeatedly:
-  printf("請輸入指令: ");
-  scanf("%2s", command); // 讀取輸入的指令，最多兩個字元
   if (!initializeUSB()) return;
 
   wav_header_t header;
