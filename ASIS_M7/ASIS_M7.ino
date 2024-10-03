@@ -1,9 +1,13 @@
-//for the ASIS Integration 
-#include <HardwareSerial.h>
+//M7 is responsible for data processing and calculation, 
+//classifying the data collected by PICO and changing it into a JSON-like format, 
+//and executing foul sound effects, starting signals, etc. 
+//according to the instructions from M4.
+
 #include <Arduino_AdvancedAnalog.h>
 #include <DigitalOut.h>
 #include <Arduino_USBHostMbed5.h>
 #include <FATFileSystem.h>
+#include <RPC.h>
 
 AdvancedDAC dac0(A12);
 USBHostMSD msd;
@@ -12,10 +16,7 @@ FILE * file = nullptr;
 int sample_size = 0;
 int samples_count = 0;
 
-String receivedData_outside = "";
-char talker[4]; // 用來存放 傳送者
-char listener[4]; // 用來存放 接收者
-char command[3]; // 用來存放 指令
+
 char murmur = 'Z';
 int ready = 0;
 
@@ -39,10 +40,9 @@ struct chunk_t {
 };
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(115200);
-  // 對PICO
-  Serial2.begin(115200,SERIAL_8N1); // 設定波特率
-
+  RPC.begin(); //boot M4
+  Serial2.begin(115200,SERIAL_8N1); // set baud rate to PICO D18 D19
+  
   //audio
   while (!Serial);
 
@@ -65,19 +65,29 @@ void setup() {
     return;
   }
 }
+
+
 //core_0 m7 do thinking
 void loop(){
+  // String talker = RPC.call("getTalker");
+  // String listener = RPC.call("getListener");
+  // String command = RPC.call("getCommand");
+  delay(1); 
+  // executeCommand(talker,listener,command);
+
   switch (murmur) {
     case 'S':
       Serial.println("啟動功能：ST");
-      sendtopico("S00");
+      RPC.call("sendtopico","S00");
+      // sendtopico("S00");
       break;
     case 'Q':
       Serial.println("啟動功能：QS");
-      // 回覆我很好
-      if(ready == 1){
-        sendtooutside("RD");
-      }
+      // if without ADLS
+      // if(ready == 1){
+        
+      //   sendtooutside("RD");
+      // }
       break;
     case 'G':
       Serial.println("啟動功能：GS");
@@ -85,17 +95,14 @@ void loop(){
       break;
     case 'R':
       Serial.println("啟動功能：RT");
-      sendtopico("C00");
+      RPC.call("sendtopico","c00");
+      // sendtopico("C00");
       break;
     case 'D':
       Serial.println("啟動功能：DA");
       // 在這裡執行指令 'DA' 對應的動作
-      sendtopico("D00");
-      break;
-    case 'E':
-      Serial.println("啟動功能：ED");
-      // 在這裡執行指令 'ED' 對應的動作
-      //終止傳輸
+      RPC.call("sendtopico","D00");
+      // sendtopico("D00");
       break;
     case 'F':
       Serial.println("啟動功能：FS");
@@ -109,46 +116,8 @@ void loop(){
       break;
   }
 }
-//core_1 m4 do talking and listening
-void core1_do() {
-  if (Serial.available()) { 
-    receivedData_outside = Serial.readStringUntil('\n');  // 讀取來自 Serial 的輸入
-    receivedData_outside.trim();  // 去除首尾空白
 
-    //切指令
-    // 使用 strncpy 來複製字串的部分
-    strncpy(talker, receivedData_outside.c_str(), 3);  // 複製前3個字元 ("ASU")
-    talker[3] = '\0';  // 確保字串結尾有 null terminator
-        
-    strncpy(listener, receivedData_outside.c_str() + 3, 3);  // 從第4個字元開始 ("DLS")
-    listener[3] = '\0';  // 確保字串結尾有 null terminator
-        
-    strncpy(command, receivedData_outside.c_str() + 6, 2);  // 從第7個字元開始 ("ST")
-    command[2] = '\0';  // 確保字串結尾有 null terminator
-
-    // 輸出結果
-    Serial.println("talker: " + String(talker));
-    Serial.println("listener: " + String(listener));
-    Serial.println("command: " + String(command));
-  }
-  
-  //確認收訊者
-  executeCommand(listener,command);
-}
-
-void sendtopico(const char* message) {
-  String dataToSend = String(message) + '\n';  // 正確的字串連接
-  delay(10);
-  Serial2.print(dataToSend);  // 傳送到 Pico
-  Serial.println(dataToSend); // 調試用輸出
-}
-void sendtooutside(const char* message) {
-  String dataToSend = String(message) + '\n';  // 正確的字串連接
-  delay(10);
-  Serial3.print(dataToSend);  // 傳送到 Pico
-  Serial.println(dataToSend); // 調試用輸出
-}
-void executeCommand(const char* listener, const char* command) {
+void executeCommand(const char* talker, const char* listener, const char* command) {
   if (strcmp(listener, "ASU") == 0 || strcmp(listener, "ALL") == 0) {
     if (strcmp(command, "ST") == 0) {
       Serial.println("執行指令 ST");
@@ -165,9 +134,6 @@ void executeCommand(const char* listener, const char* command) {
     } else if (strcmp(command, "DA") == 0) {
       Serial.println("執行指令 DA");
       murmur = 'D';
-    } else if (strcmp(command, "ED") == 0) {
-      Serial.println("執行指令 ED");
-      murmur = 'E';
     } else if (strcmp(command, "FS") == 0) {
       Serial.println("執行指令 FS");
       murmur = 'F';
